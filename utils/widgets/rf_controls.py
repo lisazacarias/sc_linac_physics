@@ -9,4 +9,4 @@ class RFControls:
         self.rf_mode_combobox: PyDMEnumComboBox = PyDMEnumComboBox()
         self.rf_on_button: QPushButton = QPushButton("On")
         self.rf_off_button: QPushButton = QPushButton("Off")
-        seld.ades_spinbox: PyDMSpinbox = PyDMSpinbox()
+        self.ades_spinbox: PyDMSpinbox = PyDMSpinbox()
