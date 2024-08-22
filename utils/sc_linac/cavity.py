@@ -2,7 +2,11 @@ from datetime import datetime
 from time import sleep
 from typing import Optional, Callable, TYPE_CHECKING
 
-from lcls_tools.common.controls.pyepics.utils import PV, EPICS_INVALID_VAL
+from lcls_tools.common.controls.pyepics.utils import (
+    PV,
+    EPICS_INVALID_VAL,
+    PVInvalidError,
+)
 
 from utils.sc_linac import linac_utils
 
@@ -333,11 +337,15 @@ class Cavity(linac_utils.SCLinacObject):
 
     @property
     def characterization_running(self) -> bool:
-        return self.characterization_status == linac_utils.CHARACTERIZATION_RUNNING_VALUE
+        return (
+            self.characterization_status == linac_utils.CHARACTERIZATION_RUNNING_VALUE
+        )
 
     @property
     def characterization_crashed(self) -> bool:
-        return self.characterization_status == linac_utils.CHARACTERIZATION_CRASHED_VALUE
+        return (
+            self.characterization_status == linac_utils.CHARACTERIZATION_CRASHED_VALUE
+        )
 
     @property
     def pulse_on_time(self):
@@ -448,6 +456,8 @@ class Cavity(linac_utils.SCLinacObject):
     def is_quenched(self) -> bool:
         if not self._quench_latch_pv_obj:
             self._quench_latch_pv_obj = PV(self.quench_latch_pv)
+        if self._quench_latch_pv_obj.severity == EPICS_INVALID_VAL:
+            raise PVInvalidError("Quench Latch PV Invalid")
         return self._quench_latch_pv_obj.get() == 1
 
     @property
@@ -613,7 +623,9 @@ class Cavity(linac_utils.SCLinacObject):
             steps_moved += abs(est_steps)
 
             if steps_moved > expected_steps * stepper_tol_factor:
-                raise linac_utils.DetuneError(f"{self} motor moved more steps than expected")
+                raise linac_utils.DetuneError(
+                    f"{self} motor moved more steps than expected"
+                )
 
             # this should catch if the chirp range is wrong or if the cavity is off
             self.check_detune()
@@ -756,7 +768,9 @@ class Cavity(linac_utils.SCLinacObject):
             print(f"setting {self} piezo DC voltage offset to 0V")
             self.piezo.dc_setpoint = 0
 
-            print(f"setting {self} drive level to {linac_utils.SAFE_PULSED_DRIVE_LEVEL}")
+            print(
+                f"setting {self} drive level to {linac_utils.SAFE_PULSED_DRIVE_LEVEL}"
+            )
             self.drive_level = linac_utils.SAFE_PULSED_DRIVE_LEVEL
 
             print(f"setting {self} RF to chirp")
@@ -859,7 +873,9 @@ class Cavity(linac_utils.SCLinacObject):
             self.finish_characterization()
 
         if self.characterization_crashed:
-            raise linac_utils.CavityCharacterizationError(f"{self} characterization crashed")
+            raise linac_utils.CavityCharacterizationError(
+                f"{self} characterization crashed"
+            )
 
     def finish_characterization(self):
         print(f"pushing {self} characterization results")
@@ -888,7 +904,9 @@ class Cavity(linac_utils.SCLinacObject):
         while self.ades <= (des_amp - step_size):
             self.check_abort()
             if self.is_quenched:
-                raise linac_utils.QuenchError(f"{self} quench detected, aborting RF ramp")
+                raise linac_utils.QuenchError(
+                    f"{self} quench detected, aborting RF ramp"
+                )
             self.ades = self.ades + step_size
             # to avoid tripping sensitive interlock
             sleep(0.1)

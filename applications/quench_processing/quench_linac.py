@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 from time import sleep
+from typing import Optional
 
 import numpy as np
 from lcls_tools.common.controls.pyepics.utils import PV, EPICS_INVALID_VAL
@@ -12,6 +13,8 @@ from utils.sc_linac.cryomodule import Cryomodule
 from utils.sc_linac.linac import Machine
 
 LOADED_Q_CHANGE_FOR_QUENCH = 0.6
+MAX_WAIT_TIME_FOR_QUENCH = 20 * 60
+MAX_QUENCH_RETRIES = 3
 
 
 class QuenchCavity(Cavity):
@@ -93,22 +96,68 @@ class QuenchCavity(Cavity):
 
     def walk_to_quench(
         self,
+        end_amp: float = 21,
+        step_size: float = 0.2,
+        step_time: float = 30,
+    ):
+        self.reset_interlocks()
+        while not self.is_quenched and self.ades < end_amp:
+            sleep(step_time)
+            self.ades = self.ades + step_size
+
+    def wait_for_quench(self) -> Optional[float]:
+        if not self.is_quenched:
+            print("cannot process unquenched cavity")
+            return None
+        self.reset_interlocks()
+        start = datetime.datetime.now()
+        while (
+            not self.is_quenched
+            and (datetime.datetime.now() - start).total_seconds()
+            < MAX_WAIT_TIME_FOR_QUENCH
+        ):
+            sleep(1)
+        return (datetime.datetime.now() - start).total_seconds()
+
+    def quench_process(
+        self,
         start_amp: float = 5,
         end_amp: float = 21,
         step_size: float = 0.2,
         step_time: float = 30,
     ):
+
         self.turn_off()
         self.ades = start_amp
         self.set_sela_mode()
         self.turn_on()
 
-        while not self.is_quenched and self.ades < end_amp:
-            sleep(step_time)
-            self.ades = self.ades + step_size
+        # TODO make sure that limits are set such that ADES can be end_amp
+        # TODO handle abort/stop
+        # TODO detect hard quench
+        while self.ades < end_amp:
+            self.walk_to_quench(
+                end_amp=end_amp,
+                step_size=step_size,
+                step_time=step_time,
+            )
 
-    def mp_process(self):
-        start = datetime.datetime.now()
+            if self.is_quenched:
+                attempt = 0
+                running_times = []
+                # TODO store stable running time per attempt
+                time_to_quench = self.wait_for_quench()
+                running_times.append(time_to_quench)
+
+                while (
+                    time_to_quench < MAX_WAIT_TIME_FOR_QUENCH
+                    and attempt < MAX_QUENCH_RETRIES
+                ):
+                    time_to_quench = self.wait_for_quench()
+                    running_times.append(time_to_quench)
+                    attempt += 1
+
+    #             TODO raise error if processing didn't work
 
     def validate_quench(self, wait_for_update: bool = False):
         """
