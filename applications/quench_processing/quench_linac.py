@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import sys
@@ -89,6 +90,25 @@ class QuenchCavity(Cavity):
             self._interlock_reset_pv_obj = PV(self.interlock_reset_pv)
 
         self._interlock_reset_pv_obj.put(1)
+
+    def walk_to_quench(
+        self,
+        start_amp: float = 5,
+        end_amp: float = 21,
+        step_size: float = 0.2,
+        step_time: float = 30,
+    ):
+        self.turn_off()
+        self.ades = start_amp
+        self.set_sela_mode()
+        self.turn_on()
+
+        while not self.is_quenched and self.ades < end_amp:
+            sleep(step_time)
+            self.ades = self.ades + step_size
+
+    def mp_process(self):
+        start = datetime.datetime.now()
 
     def validate_quench(self, wait_for_update: bool = False):
         """
