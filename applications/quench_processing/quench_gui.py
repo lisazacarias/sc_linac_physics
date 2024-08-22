@@ -2,7 +2,7 @@ from functools import partial
 from typing import Dict
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QHBoxLayout, QComboBox, QVBoxLayout, QGroupBox, QPushButton
+from PyQt5.QtWidgets import QHBoxLayout, QComboBox, QVBoxLayout, QGroupBox, QPushButton, QLabel
 from epics import camonitor, camonitor_clear
 from lcls_tools.common.frontend.plotting.util import (
     WaveformPlotParams,
@@ -25,6 +25,7 @@ class QuenchGUI(Display):
 
     def __init__(self, parent=None, args=None):
         super().__init__(parent=parent, args=args)
+        self.setWindowTitle("Quench Processing")
         main_vlayout: QVBoxLayout = QVBoxLayout()
         self.setLayout(main_vlayout)
 
@@ -34,18 +35,35 @@ class QuenchGUI(Display):
         self.cm_combobox: QComboBox = QComboBox()
         self.cav_combobox: QComboBox = QComboBox()
         self.decarad_combobox: QComboBox = QComboBox()
+        input_hlayout.addStretch()
+        input_hlayout.addWidget(QLabel("Cryomodule:"))
         input_hlayout.addWidget(self.cm_combobox)
+        input_hlayout.addWidget(QLabel("Cavity:"))
         input_hlayout.addWidget(self.cav_combobox)
+        input_hlayout.addWidget(QLabel("Decarad:"))
         input_hlayout.addWidget(self.decarad_combobox)
+        input_hlayout.addStretch()
         main_vlayout.addWidget(self.input_groupbox)
 
         self.cm_combobox.addItems(ALL_CRYOMODULES)
         self.cav_combobox.addItems(map(str, range(1, 9)))
         self.decarad_combobox.addItems(["1", "2"])
 
+        widget_hlayout: QHBoxLayout = QHBoxLayout()
+        controls_vlayout: QVBoxLayout = QVBoxLayout()
+        plot_vlayout: QVBoxLayout = QVBoxLayout()
+
+        widget_hlayout.addLayout(controls_vlayout)
+        widget_hlayout.addLayout(plot_vlayout)
+
+        main_vlayout.addLayout(widget_hlayout)
+
         self.rf_controls = RFControls()
-        self.setup_button: QPushButton = QPushButton("Setup for Processing")
-        self.reset_button: QPushButton = QPushButton("Reset")
+        self.start_button: QPushButton = QPushButton("Start Processing")
+        self.stop_button: QPushButton = QPushButton("Stop Processing")
+
+        controls_vlayout.addWidget(self.rf_controls.rf_control_groupbox)
+        controls_vlayout.addWidget(self.start_button)
 
         self.current_cm = None
         self.current_cav = None
@@ -58,6 +76,8 @@ class QuenchGUI(Display):
             "FAULT_WAVEFORMS": WaveformPlotParams(plot=self.cav_waveform_plot)
         }
 
+        plot_vlayout.addWidget(self.cav_waveform_plot)
+
         self.amp_rad_timeplot = PyDMTimePlot()
         self.amp_rad_timeplot.title = "Amplitude & Radiation"
         self.amp_rad_timeplot.showLegend = True
@@ -65,6 +85,8 @@ class QuenchGUI(Display):
         self.timeplot_params: Dict[str, TimePlotParams] = {
             "LIVE_SIGNALS": TimePlotParams(plot=self.amp_rad_timeplot)
         }
+
+        plot_vlayout.addWidget(self.amp_rad_timeplot)
 
         self.timeplot_updater: TimePlotUpdater = TimePlotUpdater(self.timeplot_params)
         self.waveform_updater: WaveformPlotUpdater = WaveformPlotUpdater(
@@ -90,8 +112,7 @@ class QuenchGUI(Display):
             self.rf_controls.ssa_off_button.clicked,
             self.rf_controls.rf_on_button.clicked,
             self.rf_controls.rf_off_button.clicked,
-            self.setup_button.clicked,
-            self.reset_button.clicked,
+            self.start_button.clicked,
         ]:
             self.clear_connections(signal)
 
@@ -112,14 +133,14 @@ class QuenchGUI(Display):
         self.rf_controls.ssa_off_button.clicked.connect(self.current_cav.ssa.turn_off)
         self.rf_controls.ssa_readback_label.channel = self.current_cav.ssa.status_pv
 
-        self.rf_controls.rf_mode_combobox.channel = self.current_cav.rf_control_pv
+        self.rf_controls.rf_mode_combobox.channel = self.current_cav.rf_mode_ctrl_pv
         self.rf_controls.rf_mode_readback_label.channel = self.current_cav.rf_mode_pv
         self.rf_controls.rf_on_button.clicked.connect(self.current_cav.turn_on)
         self.rf_controls.rf_off_button.clicked.connect(self.current_cav.turn_off)
         self.rf_controls.rf_status_readback_label.channel = self.current_cav.rf_state_pv
         self.rf_controls.ades_spinbox.channel = self.current_cav.ades_pv
         self.rf_controls.aact_readback_label.channel = self.current_cav.aact_pv
-        self.setup_button.clicked.connect(self.current_cav.setup_sela)
+        self.start_button.clicked.connect(self.current_cav.setup_sela)
         self.rf_controls.srf_max_spinbox.channel = self.current_cav.srf_max_pv
         self.rf_controls.srf_max_readback_label.channel = self.current_cav.srf_max_pv
 
@@ -135,9 +156,6 @@ class QuenchGUI(Display):
         # self.ui.bypass_indicator.channel = self.current_cav.quench_bypass_pv + "_RBV"
         # self.ui.bypass_label.channel = self.current_cav.quench_bypass_pv + "_RBV"
 
-        self.reset_button.clicked.connect(
-            partial(self.current_cav.reset_interlocks, True)
-        )
 
         self.timeplot_updater.updatePlot(
             "LIVE_SIGNALS", [(self.current_cav.aact_pv, None)]
