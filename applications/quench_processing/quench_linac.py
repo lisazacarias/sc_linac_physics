@@ -11,6 +11,7 @@ from lcls_tools.common.controls.pyepics.utils import PV, EPICS_INVALID_VAL
 from utils.sc_linac.cavity import Cavity
 from utils.sc_linac.cryomodule import Cryomodule
 from utils.sc_linac.linac import Machine
+from utils.sc_linac.linac_utils import QuenchError
 
 LOADED_Q_CHANGE_FOR_QUENCH = 0.6
 MAX_WAIT_TIME_FOR_QUENCH = 20 * 60
@@ -136,7 +137,6 @@ class QuenchCavity(Cavity):
             print(f"{end_amp} above AMAX, ramping to {self.ades_max} instead")
             end_amp = self.ades_max
 
-        # TODO detect hard quench
         while self.ades < end_amp:
             self.check_abort()
 
@@ -149,10 +149,11 @@ class QuenchCavity(Cavity):
             if self.is_quenched:
                 attempt = 0
                 running_times = []
-                # TODO store stable running time per attempt
                 time_to_quench = self.wait_for_quench()
                 running_times.append(time_to_quench)
 
+                # if time_to_quench >= MAX_WAIT_TIME_FOR_QUENCH, the cavity was
+                # stable
                 while (
                     time_to_quench < MAX_WAIT_TIME_FOR_QUENCH
                     and attempt < MAX_QUENCH_RETRIES
@@ -162,7 +163,11 @@ class QuenchCavity(Cavity):
                     running_times.append(time_to_quench)
                     attempt += 1
 
-    #             TODO raise error if processing didn't work
+                if (
+                    attempt >= MAX_QUENCH_RETRIES
+                    and not running_times[-1] > running_times[0]
+                ):
+                    raise QuenchError("Quench processing failed")
 
     def validate_quench(self, wait_for_update: bool = False):
         """

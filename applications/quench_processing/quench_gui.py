@@ -1,6 +1,5 @@
 from typing import Dict
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QHBoxLayout,
     QComboBox,
@@ -20,7 +19,7 @@ from lcls_tools.common.frontend.plotting.util import (
 )
 from pydm import Display
 from pydm.widgets import PyDMWaveformPlot, PyDMTimePlot
-from qtpy.QtCore import Signal, Slot
+from qtpy.QtCore import Signal
 
 from applications.quench_processing.quench_linac import QUENCH_MACHINE, QuenchCavity
 from utils.sc_linac.cryomodule import Cryomodule
@@ -147,9 +146,9 @@ class QuenchGUI(Display):
 
         self.cm_combobox.currentIndexChanged.connect(self.update_cm)
         self.cav_combobox.currentIndexChanged.connect(self.update_cm)
-        self.quench_signal.connect(self.quench_slot, Qt.QueuedConnection)
 
-    def clear_connections(self, signal: Signal):
+    @staticmethod
+    def clear_connections(signal: Signal):
         try:
             signal.disconnect()
         except TypeError:
@@ -195,7 +194,7 @@ class QuenchGUI(Display):
         self.rf_controls.srf_max_spinbox.channel = self.current_cav.srf_max_pv
         self.rf_controls.srf_max_readback_label.channel = self.current_cav.srf_max_pv
 
-        self.start_button.clicked.connect(self.current_cav.setup_sela)
+        self.start_button.clicked.connect(self.current_cav.quench_process)
         self.abort_button.clicked.connect(self.current_cav.request_abort)
 
         self.timeplot_updater.updatePlot(
@@ -220,21 +219,6 @@ class QuenchGUI(Display):
             callback=self.quench_callback,
             writer=print,
         )
-
-    @Slot(int)
-    def quench_slot(self, value: int):
-        is_real = self.current_cav.validate_quench(wait_for_update=True)
-        if is_real is None:
-            self.ui.valid_label.setText("Unknown")
-        elif is_real:
-            self.ui.valid_label.setText("Real")
-        else:
-            self.ui.valid_label.setText("Not Real")
-            if self.ui.auto_reset_fake_checkbox.isChecked():
-                self.current_cav.reset_interlocks(True)
-
-        if self.ui.auto_reset_all_checkbox.isChecked():
-            self.current_cav.reset_interlocks(True)
 
     def quench_callback(self, value, **kwargs):
         self.quench_signal.emit(value)
