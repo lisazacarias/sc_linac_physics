@@ -102,6 +102,7 @@ class QuenchCavity(Cavity):
     ):
         self.reset_interlocks()
         while not self.is_quenched and self.ades < end_amp:
+            self.check_abort()
             sleep(step_time)
             self.ades = self.ades + step_size
 
@@ -126,16 +127,19 @@ class QuenchCavity(Cavity):
         step_size: float = 0.2,
         step_time: float = 30,
     ):
-
         self.turn_off()
         self.ades = start_amp
         self.set_sela_mode()
         self.turn_on()
 
-        # TODO make sure that limits are set such that ADES can be end_amp
-        # TODO handle abort/stop
+        if end_amp > self.ades_max:
+            print(f"{end_amp} above AMAX, ramping to {self.ades_max} instead")
+            end_amp = self.ades_max
+
         # TODO detect hard quench
         while self.ades < end_amp:
+            self.check_abort()
+
             self.walk_to_quench(
                 end_amp=end_amp,
                 step_size=step_size,
@@ -153,6 +157,7 @@ class QuenchCavity(Cavity):
                     time_to_quench < MAX_WAIT_TIME_FOR_QUENCH
                     and attempt < MAX_QUENCH_RETRIES
                 ):
+                    self.check_abort()
                     time_to_quench = self.wait_for_quench()
                     running_times.append(time_to_quench)
                     attempt += 1
@@ -174,7 +179,7 @@ class QuenchCavity(Cavity):
         https://education.molssi.org/python-data-analysis/03-data-fitting/index.html
 
         :param wait_for_update: bool
-        :return:
+        :return: bool representing whether quench was real
         """
 
         if wait_for_update:

@@ -714,6 +714,9 @@ class Cavity(linac_utils.SCLinacObject):
         self.set_sela_mode()
         print(f"{self} set up in SELA")
 
+    def request_abort(self):
+        self.abort_flag = True
+
     def check_abort(self):
         if self.abort_flag:
             self.abort_flag = False

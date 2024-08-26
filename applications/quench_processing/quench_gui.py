@@ -1,9 +1,16 @@
-from functools import partial
 from typing import Dict
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QHBoxLayout, QComboBox, QVBoxLayout, QGroupBox, QPushButton, QLabel, QGridLayout, QSpinBox, \
-    QDoubleSpinBox
+from PyQt5.QtWidgets import (
+    QHBoxLayout,
+    QComboBox,
+    QVBoxLayout,
+    QGroupBox,
+    QPushButton,
+    QLabel,
+    QGridLayout,
+    QDoubleSpinBox,
+)
 from epics import camonitor, camonitor_clear
 from lcls_tools.common.frontend.plotting.util import (
     WaveformPlotParams,
@@ -61,7 +68,7 @@ class QuenchGUI(Display):
 
         self.rf_controls = RFControls()
         self.start_button: QPushButton = QPushButton("Start Processing")
-        self.stop_button: QPushButton = QPushButton("Stop Processing")
+        self.abort_button: QPushButton = QPushButton("Abort Processing")
 
         processing_controls_groupbox: QGroupBox = QGroupBox("Processing Controls")
         processing_controls_layout: QGridLayout = QGridLayout()
@@ -85,23 +92,28 @@ class QuenchGUI(Display):
         self.step_time_spinbox.setValue(30)
 
         start_amp_row = 0
-        processing_controls_layout.addWidget(QLabel("Starting Amplitude (MV):"), start_amp_row, 0)
+        processing_controls_layout.addWidget(
+            QLabel("Starting Amplitude (MV):"), start_amp_row, 0
+        )
         processing_controls_layout.addWidget(self.start_amp_spinbox, start_amp_row, 1)
         stop_amp_row = 1
-        processing_controls_layout.addWidget(QLabel("Ending Amplitude (MV):"), stop_amp_row, 0)
+        processing_controls_layout.addWidget(
+            QLabel("Ending Amplitude (MV):"), stop_amp_row, 0
+        )
         processing_controls_layout.addWidget(self.stop_amp_spinbox, stop_amp_row, 1)
         step_row = 2
         processing_controls_layout.addWidget(QLabel("Step Size (MV):"))
         processing_controls_layout.addWidget(self.step_size_spinbox, step_row, 1)
         time_row = 3
-        processing_controls_layout.addWidget(QLabel("Time Between Steps (s):"), time_row, 0)
+        processing_controls_layout.addWidget(
+            QLabel("Time Between Steps (s):"), time_row, 0
+        )
         processing_controls_layout.addWidget(self.step_time_spinbox, time_row, 1)
 
         controls_vlayout.addWidget(self.rf_controls.rf_control_groupbox)
         controls_vlayout.addWidget(processing_controls_groupbox)
         controls_vlayout.addWidget(self.start_button)
-        controls_vlayout.addWidget(self.stop_button)
-
+        controls_vlayout.addWidget(self.abort_button)
 
         self.current_cm = None
         self.current_cav = None
@@ -151,6 +163,7 @@ class QuenchGUI(Display):
             self.rf_controls.rf_on_button.clicked,
             self.rf_controls.rf_off_button.clicked,
             self.start_button.clicked,
+            self.abort_button.clicked,
         ]:
             self.clear_connections(signal)
 
@@ -176,24 +189,14 @@ class QuenchGUI(Display):
         self.rf_controls.rf_on_button.clicked.connect(self.current_cav.turn_on)
         self.rf_controls.rf_off_button.clicked.connect(self.current_cav.turn_off)
         self.rf_controls.rf_status_readback_label.channel = self.current_cav.rf_state_pv
+
         self.rf_controls.ades_spinbox.channel = self.current_cav.ades_pv
         self.rf_controls.aact_readback_label.channel = self.current_cav.aact_pv
-        self.start_button.clicked.connect(self.current_cav.setup_sela)
         self.rf_controls.srf_max_spinbox.channel = self.current_cav.srf_max_pv
         self.rf_controls.srf_max_readback_label.channel = self.current_cav.srf_max_pv
 
-        # self.ui.cav_power_label.channel = self.current_cav.cav_power_pv
-        # self.ui.forward_power_label.channel = self.current_cav.forward_power_pv
-        # self.ui.rev_power_label.channel = self.current_cav.reverse_power_pv
-        #
-        # self.ui.latch_indicator.channel = self.current_cav.quench_latch_pv
-        # self.ui.latch_label.channel = self.current_cav.quench_latch_pv
-        #
-        # self.ui.bypass_button.channel = self.current_cav.quench_bypass_pv
-        # self.ui.unbypass_button.channel = self.current_cav.quench_bypass_pv
-        # self.ui.bypass_indicator.channel = self.current_cav.quench_bypass_pv + "_RBV"
-        # self.ui.bypass_label.channel = self.current_cav.quench_bypass_pv + "_RBV"
-
+        self.start_button.clicked.connect(self.current_cav.setup_sela)
+        self.abort_button.clicked.connect(self.current_cav.request_abort)
 
         self.timeplot_updater.updatePlot(
             "LIVE_SIGNALS", [(self.current_cav.aact_pv, None)]
