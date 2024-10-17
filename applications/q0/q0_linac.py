@@ -7,8 +7,7 @@ from typing import Dict, List, Optional
 import numpy as np
 from epics import caget, camonitor, camonitor_clear, caput
 from lcls_tools.common.controls.pyepics.utils import PV
-from lcls_tools.common.data_analysis.archiver import get_values_over_time_range
-
+from lcls_tools.common.data.archiver import get_values_over_time_range
 from numpy import floor, linspace, sign
 from scipy.signal import medfilt
 from scipy.stats import linregress
@@ -450,8 +449,8 @@ class Q0Cryomodule(Cryomodule):
         caput(self.jtAutoSelectPV, 1, wait=True)
         print("Turning cavities and SSAs off")
         for cavity in self.cavities.values():
-            cavity.turnOff()
-            cavity.ssa.turnOff()
+            cavity.turn_off()
+            cavity.ssa.turn_off()
 
     @property
     def heater_power(self):
@@ -491,7 +490,7 @@ class Q0Cryomodule(Cryomodule):
 
         if turn_cavities_off:
             for cavity in self.cavities.values():
-                cavity.turnOff()
+                cavity.turn_off()
 
         self.waitForLL(desired_level)
 
@@ -507,7 +506,7 @@ class Q0Cryomodule(Cryomodule):
 
         self.jt_position = self.valveParams.refValvePos
 
-    def getRefValveParams(self, start_time: datetime, end_time: datetime):
+    def get_ref_valve_params(self, start_time: datetime, end_time: datetime):
         print(f"\nSearching {start_time} to {end_time} for period of JT stability")
         window_start = start_time
         window_end = start_time + q0_utils.DELTA_NEEDED_FOR_FLATNESS
@@ -518,10 +517,10 @@ class Q0Cryomodule(Cryomodule):
             data = get_values_over_time_range(
                 pv_list=[self.ds_level_pv], start_time=window_start, end_time=window_end
             )
-            llVals = medfilt(data.values[self.ds_level_pv])
+            ll_vals = medfilt(data.values[self.ds_level_pv])
 
             # Fit a line to the liquid level over the last [numHours] hours
-            m, b, r, _, _ = linregress(range(len(llVals)), llVals)
+            m, b, r, _, _ = linregress(range(len(ll_vals)), ll_vals)
             print(f"r^2 of linear fit: {r ** 2}")
             print(f"Slope: {m}")
 
@@ -546,7 +545,7 @@ class Q0Cryomodule(Cryomodule):
                 # We only want to use time periods in which there were no
                 # changes made to the heater settings
                 if len(des_val_set) == 1:
-                    des_pos = round(np.mean(data.values[self.jtValveReadbackPV]), 1)
+                    des_pos = round(np.mean(data.values[self.jt_valve_readback_pv]), 1)
                     heater_des = des_val_set.pop()
                     heater_act = np.mean(data.values[self.heater_readback_pv])
 
@@ -581,7 +580,7 @@ class Q0Cryomodule(Cryomodule):
         # Try again but only search the recent past. We have to manipulate the
         # search range a little bit due to how the search start time is rounded
         # down to the nearest half hour.
-        return self.getRefValveParams(
+        return self.get_ref_valve_params(
             start_time=start_time + timedelta(minutes=30),
             end_time=end_time + timedelta(minutes=30),
         )
@@ -644,10 +643,7 @@ class Q0Cryomodule(Cryomodule):
         self.setup_cryo_for_measurement(desired_ll, turn_cavities_off=False)
 
         for cav_num, des_amp in desiredAmplitudes.items():
-            while (
-                abs(caget(self.cavities[cav_num].selAmplitudeActPV.pvname) - des_amp)
-                > 0.1
-            ):
+            while abs(self.cavities[cav_num].aact - des_amp) > 0.1:
                 self.check_abort()
                 print(f"Waiting for CM{self.name} cavity {cav_num} to be ready")
                 sleep(5)
@@ -710,7 +706,7 @@ class Q0Cryomodule(Cryomodule):
         self.q0_measurement.heater_run_heatload = q0_utils.FULL_MODULE_CALIBRATION_LOAD
 
         if not self.valveParams:
-            self.valveParams = self.getRefValveParams(
+            self.valveParams = self.get_ref_valve_params(
                 start_time=jt_search_start, end_time=jt_search_end
             )
 
@@ -738,7 +734,7 @@ class Q0Cryomodule(Cryomodule):
         heat_end: float = 160,
     ):
         if not self.valveParams:
-            self.valveParams = self.getRefValveParams(
+            self.valveParams = self.get_ref_valve_params(
                 start_time=jt_search_start, end_time=jt_search_end
             )
 
@@ -808,6 +804,7 @@ class Q0Cryomodule(Cryomodule):
 
         print(f"Walking {self} JT to {value}%")
         for _ in range(int(floor(abs(delta)))):
+            self.check_abort()
             caput(self.jtManPosSetpointPV, self.jt_position + step, wait=True)
             sleep(3)
 
