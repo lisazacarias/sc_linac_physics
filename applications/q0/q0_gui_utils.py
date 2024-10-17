@@ -65,7 +65,7 @@ class CryoParamWorker(Worker):
     def run(self) -> None:
         try:
             self.status.emit("Getting new reference cryo parameters")
-            self.cryomodule.getRefValveParams(
+            self.cryomodule.get_ref_valve_params(
                 start_time=self.start_time, end_time=self.end_time
             )
             self.finished.emit("New reference cryo params loaded")
