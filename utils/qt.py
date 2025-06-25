@@ -2,7 +2,15 @@ from typing import List
 
 import numpy as np
 from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtWidgets import QPushButton, QGroupBox, QGridLayout, QLabel, QMessageBox
+from PyQt5.QtWidgets import (
+    QPushButton,
+    QGroupBox,
+    QGridLayout,
+    QLabel,
+    QMessageBox,
+    QWidget,
+    QVBoxLayout,
+)
 from matplotlib import pyplot as plt
 from pydm.widgets import PyDMLabel, PyDMEnumComboBox, PyDMSpinbox
 
@@ -21,9 +29,13 @@ class RFControls:
         self.rf_status_readback_label: PyDMLabel = PyDMLabel()
 
         self.ades_spinbox: PyDMSpinbox = PyDMSpinbox()
+        self.ades_spinbox.step_exponent = -1
+        self.ades_spinbox.update_step_size()
         self.aact_readback_label: PyDMLabel = PyDMLabel()
 
         self.srf_max_spinbox: PyDMSpinbox = PyDMSpinbox()
+        self.srf_max_spinbox.step_exponent = -1
+        self.srf_max_spinbox.update_step_size()
         self.srf_max_readback_label: PyDMLabel = PyDMLabel()
 
         self.rf_control_groupbox: QGroupBox = QGroupBox("RF Controls")
@@ -80,7 +92,7 @@ def make_error_popup(title, message: str):
 
 
 def make_rainbow(num_colors) -> List[List[int]]:
-    colormap = plt.cm.gist_rainbow
+    colormap = plt.cm.hsv
     return colormap(np.linspace(0, 1, num_colors), bytes=True)
 
 
@@ -90,3 +102,49 @@ def highlight_text(r, g, b, text):
     https://stackoverflow.com/questions/70519979/printing-with-rgb-background
     """
     return f"\033[48;2;{r};{g};{b}m{text}\033[0m"
+
+
+def get_dimensions(options: List):
+    num_options = len(options)
+    sqrt = np.sqrt(num_options)
+    row_count = int(sqrt)
+    col_count = int(np.ceil(sqrt))
+    if row_count * col_count < num_options:
+        col_count += 1
+    return col_count
+
+
+def make_sanity_check_popup(txt: str) -> QMessageBox:
+    msg = QMessageBox()
+    msg.setText("Are you sure?")
+    msg.setInformativeText(txt)
+    msg.setIcon(QMessageBox.Warning)
+    msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+    msg.setDefaultButton(QMessageBox.Cancel)
+
+    # msg.setDetailedText("details")
+
+    return msg
+
+
+class CollapsibleGroupBox(QGroupBox):
+    def __init__(self, title, content_layout, parent=None):
+        super().__init__(title, parent)
+        self.setCheckable(True)
+        self.setChecked(False)  # Initially collapsed
+        self.content_widget = QWidget()
+        self.content_layout = content_layout
+        self.content_widget.setLayout(self.content_layout)
+        self.layout = QVBoxLayout(self)
+        self.layout.addWidget(self.content_widget)
+        self.toggled.connect(self.on_toggled)
+        self.content_widget.setVisible(False)
+
+    def on_toggled(self, checked):
+        self.content_widget.setVisible(checked)
+        self.adjustSize()
+
+
+class MockWidget(QWidget):
+    def __init__(self, **kwargs):
+        super().__init__()

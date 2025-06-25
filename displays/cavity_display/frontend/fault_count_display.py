@@ -8,27 +8,27 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QDateTimeEdit,
     QLabel,
-    QCheckBox,
 )
 from pydm import Display
 
 from displays.cavity_display.backend.backend_cavity import BackendCavity
+from displays.cavity_display.backend.backend_machine import BackendMachine
 from displays.cavity_display.backend.fault import FaultCounter
 from displays.cavity_display.frontend.cavity_widget import (
     DARK_GRAY_COLOR,
     RED_FILL_COLOR,
     PURPLE_FILL_COLOR,
+    YELLOW_FILL_COLOR,
 )
-from utils.sc_linac.linac import Machine
 from utils.sc_linac.linac_utils import ALL_CRYOMODULES
-
-DISPLAY_MACHINE = Machine(cavity_class=BackendCavity)
 
 
 class FaultCountDisplay(Display):
-    def __init__(self):
+    def __init__(self, lazy_fault_pvs=True):
         super().__init__()
         self.setWindowTitle("Fault Count Display")
+
+        self.machine = BackendMachine(lazy_fault_pvs=lazy_fault_pvs)
 
         main_v_layout = QVBoxLayout()
         input_h_layout = QHBoxLayout()
@@ -56,13 +56,14 @@ class FaultCountDisplay(Display):
         self.start_selector.setMinimumDateTime(min_date_time)
         self.start_selector.setDateTime(intermediate_time)
         self.end_selector.setDateTime(end_date_time)
-        self.start_selector.dateChanged.connect(self.update_plot)
         self.start_selector.editingFinished.connect(self.update_plot)
-        self.end_selector.dateChanged.connect(self.update_plot)
         self.end_selector.editingFinished.connect(self.update_plot)
 
-        self.hide_pot_checkbox = QCheckBox(text="Hide POT faults")
-        self.hide_pot_checkbox.stateChanged.connect(self.update_plot)
+        # removing for now as POT faults no longer seem to be much of an issue
+        # in terms of distorting the data
+        # TODO: generalize ability to suppress any fault(s)
+        # self.hide_pot_checkbox = QCheckBox(text="Hide POT faults")
+        # self.hide_pot_checkbox.stateChanged.connect(self.update_plot)
 
         input_h_layout.addWidget(QLabel("Cryomodule:"))
         input_h_layout.addWidget(self.cm_combo_box)
@@ -73,13 +74,14 @@ class FaultCountDisplay(Display):
         input_h_layout.addWidget(self.start_selector)
         input_h_layout.addWidget(QLabel("End:"))
         input_h_layout.addWidget(self.end_selector)
-        main_v_layout.addWidget(self.hide_pot_checkbox)
+        # main_v_layout.addWidget(self.hide_pot_checkbox)
 
         self.cm_combo_box.addItems([""] + ALL_CRYOMODULES)
         self.cav_combo_box.addItems([""] + [str(i) for i in range(1, 9)])
 
-        self.num_of_faults = []
-        self.num_of_invalids = []
+        self.num_faults = []
+        self.num_invalids = []
+        self.num_warnings = []
         self.y_data = None
         self.data: Dict[str, FaultCounter] = None
 
@@ -94,14 +96,15 @@ class FaultCountDisplay(Display):
         if not cm_name or not cav_num:
             return
 
-        self.cavity: BackendCavity = DISPLAY_MACHINE.cryomodules[cm_name].cavities[
+        self.cavity: BackendCavity = self.machine.cryomodules[cm_name].cavities[
             int(cav_num)
         ]
         self.update_plot()
 
     def get_data(self):
-        self.num_of_faults = []
-        self.num_of_invalids = []
+        self.num_faults = []
+        self.num_invalids = []
+        self.num_warnings = []
         self.y_data = []
 
         start = self.start_selector.dateTime().toPyDateTime()
@@ -114,13 +117,15 @@ class FaultCountDisplay(Display):
         """
         data: Dict[str, FaultCounter] = self.cavity.get_fault_counts(start, end)
 
-        if self.hide_pot_checkbox.isChecked():
-            data.pop("POT")
+        # TODO generalize fault suppression
+        # if self.hide_pot_checkbox.isChecked():
+        #     data.pop("POT")
 
         for tlc, counter_obj in data.items():
             self.y_data.append(tlc)
-            self.num_of_faults.append(counter_obj.fault_count)
-            self.num_of_invalids.append(counter_obj.invalid_count)
+            self.num_faults.append(counter_obj.alarm_count)
+            self.num_invalids.append(counter_obj.invalid_count)
+            self.num_warnings.append(counter_obj.warning_count)
 
     def update_plot(self):
         if not self.cavity:
@@ -140,20 +145,30 @@ class FaultCountDisplay(Display):
             x0=0,
             y=y_vals_ints,
             height=0.6,
-            width=self.num_of_faults,
+            width=self.num_faults,
             brush=RED_FILL_COLOR,
         )
 
         invalid_bars = pg.BarGraphItem(
-            x0=self.num_of_faults,
+            x0=self.num_faults,
             y=y_vals_ints,
             height=0.6,
-            width=self.num_of_invalids,
+            width=self.num_invalids,
             brush=PURPLE_FILL_COLOR,
         )
-
+        warning_starts = list(
+            map(lambda a, b: a + b, self.num_faults, self.num_invalids)
+        )
+        warning_bars = pg.BarGraphItem(
+            x0=warning_starts,
+            y=y_vals_ints,
+            height=0.6,
+            width=self.num_warnings,
+            brush=YELLOW_FILL_COLOR,
+        )
         tlc_axis = self.plot_window.getAxis("left")
         tlc_axis.setTicks([ticks])
         self.plot_window.showGrid(x=True, y=False, alpha=0.6)
         self.plot_window.addItem(fault_bars)
         self.plot_window.addItem(invalid_bars)
+        self.plot_window.addItem(warning_bars)
