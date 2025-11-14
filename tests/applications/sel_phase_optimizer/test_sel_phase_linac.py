@@ -35,7 +35,21 @@ def cavity(monkeypatch):
         SELCavity,
     )
 
-    yield SELCavity(randint(1, 8), rack_object=MagicMock())
+    # Create mock rack with proper string name
+    mock_rack = MagicMock()
+    mock_rack.name = "01"
+
+    # Create mock linac with proper string name
+    mock_linac = MagicMock()
+    mock_linac.name = "L0B"
+    mock_rack.linac = mock_linac
+
+    cav = SELCavity(randint(1, 8), rack_object=mock_rack)
+
+    # Mock the logger to prevent handler issues
+    cav.logger = MagicMock()
+
+    yield cav
 
 
 def test_sel_poff_pv_obj(cavity):
@@ -44,7 +58,7 @@ def test_sel_poff_pv_obj(cavity):
 
 
 def test_fit_chisquare_pv_obj(cavity):
-    cavity._fit_chisqaure_pv_obj = make_mock_pv()
+    cavity._fit_chisquare_pv_obj = make_mock_pv()
     assert cavity.fit_chisquare_pv_obj == cavity._fit_chisquare_pv_obj
 
 

@@ -2,10 +2,10 @@ from random import randint, choice
 from unittest.mock import MagicMock
 
 import pytest
-from lcls_tools.common.controls.pyepics.utils import make_mock_pv
 
 from sc_linac_physics.applications.tuning.tune_cavity import TuneCavity
 from sc_linac_physics.applications.tuning.tune_stepper import TuneStepper
+from sc_linac_physics.utils.epics import make_mock_pv
 from sc_linac_physics.utils.sc_linac.linac_utils import (
     TUNE_CONFIG_COLD_VALUE,
     TUNE_CONFIG_PARKED_VALUE,

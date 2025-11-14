@@ -2,13 +2,6 @@ from random import choice, randint
 from unittest.mock import MagicMock
 
 import pytest
-from lcls_tools.common.controls.pyepics.utils import (
-    make_mock_pv,
-    EPICS_INVALID_VAL,
-    EPICS_NO_ALARM_VAL,
-    EPICS_MINOR_VAL,
-    EPICS_MAJOR_VAL,
-)
 from numpy import pi, exp, linspace
 
 from sc_linac_physics.applications.quench_processing.quench_cavity import (
@@ -19,6 +12,13 @@ from sc_linac_physics.applications.quench_processing.quench_utils import (
     LOADED_Q_CHANGE_FOR_QUENCH,
     QUENCH_STABLE_TIME,
     RADIATION_LIMIT,
+)
+from sc_linac_physics.utils.epics import (
+    make_mock_pv,
+    EPICS_INVALID_VAL,
+    EPICS_NO_ALARM_VAL,
+    EPICS_MINOR_VAL,
+    EPICS_MAJOR_VAL,
 )
 from sc_linac_physics.utils.sc_linac.linac_utils import (
     QuenchError,
@@ -35,7 +35,15 @@ def cavity(monkeypatch):
         "lcls_tools.common.logger.logger.custom_logger", mock_func
     )
     monkeypatch.setattr("logging.FileHandler", mock_func)
-    yield QuenchCavity(randint(1, 8), MagicMock())
+
+    mock_cryomodule = MagicMock()
+    mock_cryomodule.name = "CM01"  # Use actual string instead of MagicMock
+
+    cav = QuenchCavity(randint(1, 8), mock_cryomodule)
+    # Mock the logger to avoid handler issues
+    cav.logger = MagicMock()
+
+    yield cav
 
 
 def test_current_q_loaded_pv_obj(cavity):

@@ -3,12 +3,12 @@ from random import randint, choice
 from unittest.mock import MagicMock
 
 import pytest
-from lcls_tools.common.controls.pyepics.utils import (
+
+from sc_linac_physics.utils.epics import (
     EPICS_INVALID_VAL,
     EPICS_NO_ALARM_VAL,
     make_mock_pv,
 )
-
 from sc_linac_physics.utils.sc_linac.cavity import Cavity
 from sc_linac_physics.utils.sc_linac.linac import MACHINE
 from sc_linac_physics.utils.sc_linac.linac_utils import (
@@ -140,9 +140,7 @@ def test_set_sela_mode(cavity):
 def test_set_selap_mode(cavity):
     cavity._rf_mode_ctrl_pv_obj = make_mock_pv()
     cavity.set_selap_mode()
-    cavity._rf_mode_ctrl_pv_obj.put.assert_called_with(
-        RF_MODE_SELAP, use_caput=False
-    )
+    cavity._rf_mode_ctrl_pv_obj.put.assert_called_with(RF_MODE_SELAP)
 
 
 def test_drive_level(cavity):

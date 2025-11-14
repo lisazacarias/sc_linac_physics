@@ -4,11 +4,11 @@ from random import randint
 from unittest.mock import MagicMock, call
 
 import pytest
-from lcls_tools.common.controls.pyepics.utils import make_mock_pv
 
 from sc_linac_physics.applications.auto_setup.backend.setup_cavity import (
     SetupCavity,
 )
+from sc_linac_physics.utils.epics import make_mock_pv
 from sc_linac_physics.utils.sc_linac.linac_utils import (
     CavityAbortError,
     RF_MODE_SELA,
