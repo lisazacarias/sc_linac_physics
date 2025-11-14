@@ -3,7 +3,6 @@ import time
 from typing import Optional
 
 import numpy as np
-from lcls_tools.common.controls.pyepics.utils import PV, EPICS_INVALID_VAL
 
 from sc_linac_physics.applications.quench_processing.quench_utils import (
     QUENCH_AMP_THRESHOLD,
@@ -13,7 +12,10 @@ from sc_linac_physics.applications.quench_processing.quench_utils import (
     MAX_QUENCH_RETRIES,
     DECARAD_SETTLE_TIME,
     RADIATION_LIMIT,
+    QUENCH_LOG_DIR,
 )
+from sc_linac_physics.utils.epics import PV, EPICS_INVALID_VAL
+from sc_linac_physics.utils.logger import custom_logger
 from sc_linac_physics.utils.sc_linac.cavity import Cavity
 from sc_linac_physics.utils.sc_linac.decarad import Decarad
 from sc_linac_physics.utils.sc_linac.linac_utils import (
@@ -48,10 +50,11 @@ class QuenchCavity(Cavity):
 
         self.decarad: Optional[Decarad] = None
 
-    @property
-    def logger(self):
-        """Convenience property to access cryomodule logger."""
-        return self.cryomodule.logger
+        self.logger = custom_logger(
+            name=f"{self.cryomodule.name}.{self.number}.Quench",
+            log_dir=str(QUENCH_LOG_DIR / self.cryomodule.name),
+            log_filename=f"{self.number}",
+        )
 
     @property
     def current_q_loaded_pv_obj(self):
