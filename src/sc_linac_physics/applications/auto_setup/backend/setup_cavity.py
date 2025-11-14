@@ -1,10 +1,13 @@
+import logging
 from time import sleep
 
 from epics.ca import CASeverityException
 
-from sc_linac_physics.applications.auto_setup.backend.setup_utils import (
+from sc_linac_physics.applications.auto_setup.setup_utils import (
+    SETUP_LOG_DIR,
     SetupLinacObject,
 )
+from sc_linac_physics.utils.logger import custom_logger
 from sc_linac_physics.utils.sc_linac.cavity import Cavity, linac_utils
 from sc_linac_physics.utils.sc_linac.linac_utils import (
     RF_MODE_SELA,
@@ -22,6 +25,14 @@ class SetupCavity(Cavity, SetupLinacObject):
     ):
         Cavity.__init__(self, cavity_num=cavity_num, rack_object=rack_object)
         SetupLinacObject.__init__(self)
+
+        logger_name = f"{self.cryomodule.name}.{self.number}.Setup"
+
+        self.logger = custom_logger(
+            name=logger_name,
+            log_dir=str(SETUP_LOG_DIR / self.cryomodule.name),
+            log_filename=f"{self.number}",
+        )
 
     def capture_acon(self):
         self.acon = self.ades
@@ -64,7 +75,7 @@ class SetupCavity(Cavity, SetupLinacObject):
         except (CASeverityException, linac_utils.CavityAbortError) as e:
             self.status = STATUS_ERROR_VALUE
             self.clear_abort()
-            self.status_message = str(e)
+            self.set_status_message(str(e), level=logging.ERROR)
 
     def setup(self):
         try:
@@ -106,7 +117,7 @@ class SetupCavity(Cavity, SetupLinacObject):
         except Exception as e:
             self.status = STATUS_ERROR_VALUE
             self.clear_abort()
-            self.status_message = str(e)
+            self.set_status_message(str(e), level=logging.ERROR)
 
     def request_ramp(self):
         try:
@@ -154,11 +165,11 @@ class SetupCavity(Cavity, SetupLinacObject):
                     self.status_message = f"{self} Ramped Up to {self.acon} MV"
                 except Exception as e:
                     self.status = STATUS_ERROR_VALUE
-                    self.status_message = str(e)
+                    self.set_status_message(str(e), level=logging.ERROR)
                     raise
 
         except Exception as e:
-            self.status_message = str(e)
+            self.set_status_message(str(e), level=logging.ERROR)
             raise
 
     def request_characterization(self):
@@ -193,5 +204,5 @@ class SetupCavity(Cavity, SetupLinacObject):
             self.progress = 25
             self.check_abort()
         except Exception as e:
-            self.status_message = str(e)
+            self.set_status_message(str(e), level=logging.ERROR)
             raise
