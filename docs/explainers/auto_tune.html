@@ -153,13 +153,15 @@
       <thead><tr><th></th><th>Stepper tuner</th><th>Piezo</th></tr></thead>
       <tbody>
         <tr><td>Speed</td><td>Slow — seconds to minutes per move</td>
-            <td>Fast — closes a feedback loop</td></tr>
+            <td>Fast — a voltage change, not a mechanical move
+            <span class="cite">piezo.py:50</span></td></tr>
         <tr><td>Range</td><td>Enormous; tens of millions of microsteps to cold
             landing</td><td>Narrow, centred at 25 V
             <span class="cite">PIEZO_CENTER_VOLTAGE, linac_utils.py:142</span>
             </td></tr>
         <tr><td>Role</td><td>Gets the cavity to resonance and holds the coarse
-            position</td><td>Rejects microphonics once you are there</td></tr>
+            position</td><td>Slow (~few Hz) frequency feedback once you are
+            there</td></tr>
       </tbody>
     </table>
 
@@ -398,9 +400,9 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
 
     <p>
       The purpose: the piezo has drifted away from its 25 V centre absorbing
-      slow frequency changes, so it no longer has symmetric authority to reject
-      microphonics. The second pass uses the stepper to take over that DC
-      offset, handing the piezo back its full &plusmn; range. Note the
+      slow frequency changes, so it no longer has symmetric range left to
+      follow further drift. The second pass uses the stepper to take over that
+      DC offset, handing the piezo back its full &plusmn; range. Note the
       harmonic-linearizer sign flip — <code>delta_piezo</code> negates its
       result for HLs <span class="cite">cavity.py:711-715</span>.
     </p>
@@ -538,8 +540,10 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
             <td>The reference <em>detune</em>, in Hz, at cold landing
             <span class="cite">cavity.py:164</span></td></tr>
         <tr><td><code>NSTEPS_COLD</code></td>
-            <td>The stepper <em>position</em>, in microsteps, that reached it
-            <span class="cite">stepper.py:55</span></td></tr>
+            <td>The signed <em>step count</em> for the return trip, resonance
+            back to cold landing — a distance, not a position
+            <span class="cite">stepper.py:55,
+            frequency_tuning.py:967-971</span></td></tr>
       </tbody>
     </table>
   </section>

@@ -19,7 +19,7 @@ EXPLAINER = (
     / "explainers"
     / "auto_tune.html"
 )
-HTML = EXPLAINER.read_text()
+HTML = EXPLAINER.read_text(encoding="utf-8")
 
 
 def _oracle_rows():
