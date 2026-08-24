@@ -102,8 +102,9 @@ LOADED_Q_UPPER_LIMIT_HL = int(3.5e7)
 DESIGN_Q_LOADED_HL = int(2.5e7)
 
 # LCLS-II-HE cavities, which is every cavity in L4B (CM 37-59). The window is
-# wider than the original LCLS-II one at both ends, not shifted — these are a
-# different cavity design, not the same cavity held to a looser standard.
+# wider than the original LCLS-II one at both ends, not shifted — this results
+# from a different default value for Qext, not the same cavity held to a looser
+# standard.
 #
 # Source: Ryan Porter's cavity characterization outline — "Flag loaded Q is
 # < 3E7 or > 7E7 (for HE cavities)". Confirm with him before treating these as

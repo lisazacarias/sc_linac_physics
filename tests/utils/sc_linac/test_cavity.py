@@ -912,8 +912,9 @@ class TestLoadedQLimitsByCavityClass:
     """Three cavity classes, three loaded-Q windows.
 
     HE (all of L4B) accepts a wider window than the original LCLS-II cavities
-    at both ends — a different cavity design, not a looser standard. Using the
-    standard limits there would flag correctly-performing HE cavities.
+    at both ends — a different default value for loaded Q, not a looser
+    standard. Using the standard limits there would flag correctly-performing
+    HE cavities.
     """
 
     @staticmethod
