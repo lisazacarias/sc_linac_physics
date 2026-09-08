@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v9.35.0 (2026-09-08)
+
+### Features
+
+- **cavity-display**: Addressing SCLP-216 to add FBPDESSUM to faults
+  ([#290](https://github.com/slaclab/sc_linac_physics/pull/290),
+  [`415dcbc`](https://github.com/slaclab/sc_linac_physics/commit/415dcbcfc44696c379f3e3f52ffcad16c6249387))
+
+
 ## v9.34.1 (2026-09-03)
 
 ### Bug Fixes
