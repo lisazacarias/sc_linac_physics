@@ -1514,16 +1514,20 @@ function cssVar(name) {
 }
 
 const SLIDERS = [
-  // Range is deliberately wide and asymmetric. A cavity coming off cooldown
-  // can sit hundreds of kHz high, so a +/-50 kHz slider understated the real
-  // envelope; the upper bound is what tuning actually has to walk in from.
-  // 400 kHz is the most that would ever be worth offering, because that is
-  // where find_chirp_range's cap stops widening (see section 3) -- past it the
-  // detune cannot be measured, so the loop never sees it.
+  // Range is deliberately wide and asymmetric. The upper bound is what tuning
+  // has to walk in from, and 400 kHz is the most worth offering because that
+  // is where find_chirp_range's cap stops widening (cavity.py:1200, see
+  // section 3) -- past it the detune cannot be measured, so the loop never
+  // sees it.
+  //
+  // CHECK: how far out does a cavity actually sit coming off cooldown, and in
+  // which direction? The asymmetric -50k..200k range assumes "high by
+  // hundreds of kHz". Nothing in this repo establishes that, so it is a guess
+  // at the envelope rather than a measured one.
   { id: "detune0", label: "Starting detune", unit: "Hz",
     min: -50000, max: 200000, step: 100, value: 5000,
-    note: "Hundreds of kHz is normal off cooldown; beyond ~400 kHz the " +
-          "chirp cannot measure it at all" },
+    note: "Beyond ~400 kHz find_chirp_range stops widening and the chirp " +
+          "cannot measure the detune at all (cavity.py:1200)" },
   { id: "tolerance", label: "Tolerance", unit: "Hz",
     min: 5, max: 1000, step: 5, value: 50,
     note: "50 Hz standard, 500 Hz for harmonic linearizers (cavity.py:735)" },
