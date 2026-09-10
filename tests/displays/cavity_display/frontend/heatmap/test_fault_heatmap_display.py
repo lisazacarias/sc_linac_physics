@@ -131,6 +131,7 @@ class TestFetchLifecycle:
         ".fault_heatmap_display.QMessageBox"
     )
     def test_refresh_without_machine_shows_dialog(self, mock_msgbox, display):
+        display._machine = None
         display._on_refresh_clicked()
         mock_msgbox.information.assert_called_once()
 
@@ -505,6 +506,7 @@ class TestFetchSelected:
     def test_fetch_selected_without_machine_shows_dialog(
         self, mock_msgbox, display
     ):
+        display._machine = None
         display._on_cavity_clicked("01", 1)
         display._on_fetch_selected_clicked()
         mock_msgbox.information.assert_called_once()
