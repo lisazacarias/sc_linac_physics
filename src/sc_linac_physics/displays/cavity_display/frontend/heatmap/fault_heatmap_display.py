@@ -112,6 +112,12 @@ class FaultHeatmapDisplay(Display):
     ) -> None:
         super().__init__(parent=parent, args=args, macros=macros)
 
+        if machine is None:
+            from sc_linac_physics.displays.cavity_display.backend.backend_machine import (
+                BackendMachine,
+            )
+
+            machine = BackendMachine(lazy_fault_pvs=True)
         self._machine = machine
         self._fetcher: Optional[FaultDataFetcher] = None
         self._results: List[CavityFaultResult] = []
