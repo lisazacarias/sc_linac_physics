@@ -497,6 +497,7 @@ def all_script_names():
         "sc-cavity",
         "sc-faults",
         "sc-fcount",
+        "sc-fheatmap",
         "sc-quench",
         "sc-setup",
         "sc-q0",
