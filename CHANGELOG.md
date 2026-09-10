@@ -2,6 +2,40 @@
 
 <!-- version list -->
 
+## v9.36.0 (2026-09-10)
+
+### Bug Fixes
+
+- Auto create BackendMachine when launching heatmap from CLI
+  ([#291](https://github.com/slaclab/sc_linac_physics/pull/291),
+  [`c9fd339`](https://github.com/slaclab/sc_linac_physics/commit/c9fd339435d8bd829b405a99b7c7c88d4dc760c1))
+
+### Continuous Integration
+
+- Add weekly stale PR reminder ([#283](https://github.com/slaclab/sc_linac_physics/pull/283),
+  [`adb3174`](https://github.com/slaclab/sc_linac_physics/commit/adb31740e38da6774b3fa6c48dff33619385a28c))
+
+- Run tests in parallel and measure coverage on one leg
+  ([#292](https://github.com/slaclab/sc_linac_physics/pull/292),
+  [`20fbbd7`](https://github.com/slaclab/sc_linac_physics/commit/20fbbd7ba16e14c0d8b4a51244304abdda0cb938))
+
+### Documentation
+
+- Tidy wording in the reviewer sections
+  ([#283](https://github.com/slaclab/sc_linac_physics/pull/283),
+  [`adb3174`](https://github.com/slaclab/sc_linac_physics/commit/adb31740e38da6774b3fa6c48dff33619385a28c))
+
+- **claude-md**: Assert only what the code shows; add length budgets
+  ([#293](https://github.com/slaclab/sc_linac_physics/pull/293),
+  [`7e6b0da`](https://github.com/slaclab/sc_linac_physics/commit/7e6b0da208d807879759164993fe6537e14767fb))
+
+### Features
+
+- Add fault heatmap to CLI infrastructure
+  ([#291](https://github.com/slaclab/sc_linac_physics/pull/291),
+  [`c9fd339`](https://github.com/slaclab/sc_linac_physics/commit/c9fd339435d8bd829b405a99b7c7c88d4dc760c1))
+
+
 ## v9.35.0 (2026-09-08)
 
 ### Features
