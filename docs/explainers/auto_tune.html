@@ -197,7 +197,7 @@
     <p>
       The 1.4 is not arbitrary — the prototype tuner measured a slow-tuner
       sensitivity of 1.4 Hz/step over a ~450 kHz range
-      <span class="cite">Pischalnikov et al., IPAC2015, WEPTY035</span>. The
+      <span class="cite">Pischalnikov et al., IPAC2015, <a href="https://proceedings.jacow.org/IPAC2015/papers/wepty035.pdf">WEPTY035</a></span>. The
       repo calls both constants "very rough values obtained empirically"
       <span class="cite">linac_utils.py:150</span>, which is the right warning:
       they are one prototype's numbers, not this cavity's.
@@ -376,7 +376,7 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
       linearly and without noise. The real tuner does not: the prototype
       measured ~30 steps of backlash and ~45 Hz of hysteresis over a
       &plusmn;150 Hz range <span class="cite">Pischalnikov et al., IPAC2015,
-      WEPTY035</span>, which is why the tolerance factors are far wider than a
+      <a href="https://proceedings.jacow.org/IPAC2015/papers/wepty035.pdf">WEPTY035</a></span>, which is why the tolerance factors are far wider than a
       linear response needs — 5&times; the estimated steps below 10,000 steps,
       1.01&times; near cold landing, fitted empirically against large dead zones
       <span class="cite">stepper_tol_factor, linac_utils.py:224-236</span>.
@@ -651,13 +651,24 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
       </li>
       <li>
         <strong>Guards the stepper temperature</strong> at
-        <code>STEPPER_TEMP_LIMIT</code> = 70 &deg;C
+        <code>STEPPER_TEMP_LIMIT</code> = 70 <em>kelvin</em>
         <span class="cite">frequency_tuning.py:66</span>, raisable for a re-run
         by an explicit operator acknowledgement
         <span class="cite">over_temp_ack_c, :807</span>. The raised ceiling is
         passed straight into <code>_auto_tune</code>'s
         <code>max_stepper_temp</code>, which still fails hard on a breach — the
         acknowledgement moves the line, it does not add a retry.
+        <br><br>
+        Kelvin, despite the <code>_c</code> on those names and the
+        <code>&deg;C</code> in <code>StepperTempError</code>'s message. The
+        stepper sits in the cryomodule insulating vacuum: production testing
+        interlocks the motor below 70 K and reports it starting near 30 K and
+        rising under 4 K through a long motion
+        <span class="cite">Holzbauer et al., IPAC2018,
+        <a href="https://proceedings.jacow.org/IPAC2018/papers/wepml004.pdf">WEPML004</a></span>.
+        The simulation agrees, serving <code>STEPTEMP</code> at 35.0 with its
+        alarm at 70 <span class="cite">cavity_service.py:214-219</span>. The
+        number is right and the label is wrong.
       </li>
     </ul>
 
@@ -1087,7 +1098,8 @@ const FAULT_BASE = {
 //
 // The prototype tuner measured ~30 steps of mechanical backlash and ~45 Hz of
 // hysteresis over a +/-150 Hz range (Pischalnikov et al., "Design and Test of
-// Compact Tuner for Narrow Bandwidth SRF Cavities", IPAC2015, WEPTY035). Those
+// Compact Tuner for Narrow Bandwidth SRF Cavities", IPAC2015, WEPTY035,
+// https://proceedings.jacow.org/IPAC2015/papers/wepty035.pdf). Those
 // two are the same effect in different units: 45 Hz at the paper's 1.4 Hz/step
 // is ~32 steps. So at and below the 10,000 step plateau, backlash is a real
 // fraction of a small commanded move.
