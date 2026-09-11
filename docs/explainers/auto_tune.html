@@ -1564,11 +1564,19 @@ function cssVar(name) {
 }
 
 const SLIDERS = [
-  // Range covers both signs. Every cavity lands at its own cold-landing
-  // frequency AND its own direction, measured per cavity during commissioning
-  // and recorded as DF_COLD with the signed return trip in NSTEPS_COLD
-  // (stepper.py:55) -- so there is no "cavities come off cooldown high"
-  // default to lean the slider on.
+  // Range covers both signs, because the cold landing does. Every cavity lands
+  // at its own frequency and its own direction, measured per cavity during
+  // commissioning and recorded as DF_COLD with the signed return trip in
+  // NSTEPS_COLD (stepper.py:55). The sign on NSTEPS_COLD is not decoration:
+  // some cavities landed negative during LCLS-II commissioning.
+  //
+  // Production acceptance at FNAL expected the narrower one-sided case -- a
+  // cold landing between 1300.020 and 1300.300 MHz, so 20 to 300 kHz high,
+  // averaging ~200 kHz of tuning to reach 1.3 GHz across 56 cavities
+  // (Holzbauer et al., IPAC2018, WEPML004,
+  // https://proceedings.jacow.org/IPAC2018/papers/wepml004.pdf). Treat that as
+  // the first-article production envelope, not as the sign of the installed
+  // machine.
   //
   // The bound is 400 kHz because that is where find_chirp_range's cap stops
   // widening (cavity.py:1200, see section 3) -- past it the detune cannot be
