@@ -195,6 +195,15 @@
     </p>
 
     <p>
+      The 1.4 is not arbitrary — the prototype tuner measured a slow-tuner
+      sensitivity of 1.4 Hz/step over a ~450 kHz range
+      <span class="cite">Pischalnikov et al., IPAC2015, WEPTY035</span>. The
+      repo calls both constants "very rough values obtained empirically"
+      <span class="cite">linac_utils.py:150</span>, which is the right warning:
+      they are one prototype's numbers, not this cavity's.
+    </p>
+
+    <p>
       Those two are <em>estimates</em>. Nothing in <code>utils/sc_linac/</code>
       or <code>applications/</code> reads either one. Their only consumers are
       the two derived constants declared immediately below them
@@ -364,13 +373,14 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
 
     <div class="caveat">
       <strong>What this simulator is not.</strong> The modeled cavity responds
-      linearly and without noise. The real tolerance factors are far wider than
-      a linear response needs — 5&times; the estimated steps below 10,000 steps,
-      1.01&times; near cold landing — and the docstring that sets them records
-      large dead zones, plus the step counts they were fitted to, as empirically
-      determined <span class="cite">stepper_tol_factor,
-      linac_utils.py:224-236</span>. Trust the loop structure here; do not trust
-      the smoothness.
+      linearly and without noise. The real tuner does not: the prototype
+      measured ~30 steps of backlash and ~45 Hz of hysteresis over a
+      &plusmn;150 Hz range <span class="cite">Pischalnikov et al., IPAC2015,
+      WEPTY035</span>, which is why the tolerance factors are far wider than a
+      linear response needs — 5&times; the estimated steps below 10,000 steps,
+      1.01&times; near cold landing, fitted empirically against large dead zones
+      <span class="cite">stepper_tol_factor, linac_utils.py:224-236</span>.
+      Trust the loop structure here; do not trust the smoothness.
     </div>
   </section>
   <section id="detune-source">
@@ -1071,9 +1081,16 @@ const FAULT_BASE = {
 //
 // How many times the estimated step count the loop is allowed to actually move
 // before it declares the motor is running away. Generous at small step counts,
-// where mechanical dead zones make the estimate rough, and tight
-// at large ones (1.01x near cold landing, tens of millions of steps, where a 1%
-// overrun is already enormous).
+// where dead zones make the estimate rough, and tight at large ones (1.01x near
+// cold landing, tens of millions of steps, where a 1% overrun is already
+// enormous).
+//
+// The prototype tuner measured ~30 steps of mechanical backlash and ~45 Hz of
+// hysteresis over a +/-150 Hz range (Pischalnikov et al., "Design and Test of
+// Compact Tuner for Narrow Bandwidth SRF Cavities", IPAC2015, WEPTY035). Those
+// two are the same effect in different units: 45 Hz at the paper's 1.4 Hz/step
+// is ~32 steps. So at and below the 10,000 step plateau, backlash is a real
+// fraction of a small commanded move.
 //
 // Read the plateau carefully. The flat 5x holds only at or below 10,000 steps,
 // which is roughly where a 3.9 GHz harmonic linearizer sits at resonance — the
@@ -1535,18 +1552,19 @@ function cssVar(name) {
 }
 
 const SLIDERS = [
-  // Range is deliberately wide and asymmetric. The upper bound is what tuning
-  // has to walk in from, and 400 kHz is the most worth offering because that
-  // is where find_chirp_range's cap stops widening (cavity.py:1200, see
-  // section 3) -- past it the detune cannot be measured, so the loop never
-  // sees it.
+  // Range covers both signs. Every cavity lands at its own cold-landing
+  // frequency AND its own direction, measured per cavity during commissioning
+  // and recorded as DF_COLD with the signed return trip in NSTEPS_COLD
+  // (stepper.py:55) -- so there is no "cavities come off cooldown high"
+  // default to lean the slider on.
   //
-  // CHECK: how far out does a cavity actually sit coming off cooldown, and in
-  // which direction? The asymmetric -50k..200k range assumes "high by
-  // hundreds of kHz". Nothing in this repo establishes that, so it is a guess
-  // at the envelope rather than a measured one.
+  // The bound is 400 kHz because that is where find_chirp_range's cap stops
+  // widening (cavity.py:1200, see section 3) -- past it the detune cannot be
+  // measured, so the loop never sees it. Worth knowing that the coarse tuner's
+  // own range is larger than that window: ~450 kHz, set by hard stops
+  // (Pischalnikov et al., IPAC2015, WEPTY035).
   { id: "detune0", label: "Starting detune", unit: "Hz",
-    min: -50000, max: 200000, step: 100, value: 5000,
+    min: -200000, max: 200000, step: 100, value: 5000,
     note: "Beyond ~400 kHz find_chirp_range stops widening and the chirp " +
           "cannot measure the detune at all (cavity.py:1200)" },
   { id: "tolerance", label: "Tolerance", unit: "Hz",
