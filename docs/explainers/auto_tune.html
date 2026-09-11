@@ -623,7 +623,7 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
         <strong>Measures Hz/microstep instead of inheriting it.</strong> A
         50,000-microstep probe move must produce at least 100 Hz of detune
         change <span class="cite">min_probe_delta_hz,
-        frequency_tuning.py:72, enforced :726</span>. Below that it fails and
+        phases/frequency_tuning.py:72, enforced :726</span>. Below that it fails and
         points at the physical cause: the stepper is not mechanically connected
         to the tuner.
       </li>
@@ -644,7 +644,7 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
       <li>
         <strong>Refuses to tune until <code>DF_COLD</code> is pushed</strong>
         and matches the recorded cold-landing frequency within 1 Hz
-        <span class="cite">frequency_tuning.py:170, tolerance at :168</span>.
+        <span class="cite">phases/frequency_tuning.py:170, tolerance at :168</span>.
         The reason it compares against the record rather than checking validity:
         <code>DF_COLD</code> defaults to a perfectly valid 0, so there is no
         INVALID severity to key off.
@@ -652,7 +652,7 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
       <li>
         <strong>Guards the stepper temperature</strong> at
         <code>STEPPER_TEMP_LIMIT</code> = 70 <em>kelvin</em>
-        <span class="cite">frequency_tuning.py:66</span>, raisable for a re-run
+        <span class="cite">phases/frequency_tuning.py:66</span>, raisable for a re-run
         by an explicit operator acknowledgement
         <span class="cite">over_temp_ack_c, :807</span>. The raised ceiling is
         passed straight into <code>_auto_tune</code>'s
@@ -679,7 +679,7 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
       <span class="cite">ui/controllers/frequency_tuning_controller.py</span>
       plus three re-run gates that re-establish cavity state before stages 2, 3
       and 4 <span class="cite">_check_state_for_stage_2/3/4,
-      frequency_tuning.py:324, 368, 404</span> — and it is deliberately out of
+      phases/frequency_tuning.py:324, 368, 404</span> — and it is deliberately out of
       scope for a page about the convergence loop. Section 6 covers the abort
       <em>mechanism</em> at the stepper and cavity level, which is what
       <code>_auto_tune</code> itself sees.
