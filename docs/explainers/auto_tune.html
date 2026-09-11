@@ -147,23 +147,42 @@
       we want. Tuning is the act of driving it to zero.
     </p>
 
-    <p>Two actuators, with a clear division of labour:</p>
+    <p>Two actuators, with a clear division of labor:</p>
 
     <table>
       <thead><tr><th></th><th>Stepper tuner</th><th>Piezo</th></tr></thead>
       <tbody>
-        <tr><td>Speed</td><td>Slow — seconds to minutes per move</td>
+        <tr><td>Speed</td><td>Slow — a mechanical move. Roughly 50 s at
+            full range: 1,000,000 usteps at 20,000 usteps/s
+            <span class="cite">DEFAULT_STEPPER_MAX_STEPS, DEFAULT_STEPPER_SPEED,
+            linac_utils.py:121-122; STEP:VELO EGU is usteps/</span></td>
             <td>Fast — a voltage change, not a mechanical move
             <span class="cite">piezo.py:50</span></td></tr>
         <tr><td>Range</td><td>Enormous; tens of millions of microsteps to cold
-            landing</td><td>Narrow, centred at 25 V
+            landing <span class="cite">50,000,000 steps, stepper_tol_factor,
+            linac_utils.py:228</span></td><td>Narrow, centered at 25 V
             <span class="cite">PIEZO_CENTER_VOLTAGE, linac_utils.py:142</span>
             </td></tr>
         <tr><td>Role</td><td>Gets the cavity to resonance and holds the coarse
-            position</td><td>Slow (~few Hz) frequency feedback once you are
-            there</td></tr>
+            position <span class="cite">move_to_resonance(),
+            cavity.py:716-747</span></td><td>Closed-loop frequency feedback,
+            driven off an integrator setpoint
+            <span class="cite">enable_feedback(), piezo.py:35,38;
+            INTEG_SP, piezo.py:41</span></td></tr>
       </tbody>
     </table>
+
+    <div class="caveat">
+      <strong>The piezo loop's timescale is not in this repo.</strong> The code
+      gives a closed-loop mode, an integrator setpoint, and a centering pass
+      that runs under SELA <span class="cite">INTEG_SP, piezo.py:41;
+      cavity.py:739-745</span>. None of that fixes a bandwidth, and no figure
+      appears anywhere in <code>src/</code>.
+      <br><br>
+      CHECK: what is the cutoff in Hz, and does the loop reject microphonics or
+      only follow slow drift? Open for the same reason: why the piezo ends up
+      off its 25 V center at all. Section 3 shows the correction, not the cause.
+    </div>
 
     <h3>Where Hz-per-step comes from</h3>
 
@@ -344,11 +363,14 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
     </p>
 
     <div class="caveat">
-      <strong>What this simulator is not.</strong> The modelled cavity responds
-      linearly and without noise. Real cavities have mechanical hysteresis and
-      dead zones — which is exactly why <code>stepper_tol_factor()</code> allows
-      5&times; the estimated steps below 10,000 steps and only 1.01&times; near
-      cold landing. Trust the loop structure here; do not trust the smoothness.
+      <strong>What this simulator is not.</strong> The modeled cavity responds
+      linearly and without noise. The real tolerance factors are far wider than
+      a linear response needs — 5&times; the estimated steps below 10,000 steps,
+      1.01&times; near cold landing — and the docstring that sets them records
+      large dead zones, plus the step counts they were fitted to, as empirically
+      determined <span class="cite">stepper_tol_factor,
+      linac_utils.py:224-236</span>. Trust the loop structure here; do not trust
+      the smoothness.
     </div>
   </section>
   <section id="detune-source">
@@ -384,7 +406,7 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
       <code>applications/auto_setup/backend/setup_cavity.py:219</code> and
       nowhere else. The tuning GUI and the RF commissioning phase both tune in
       chirp mode. SELA appears on this page because it explains the
-      piezo-centring pass below — not because you will meet it in
+      piezo-centering pass below — not because you will meet it in
       commissioning.
     </p>
 
@@ -399,20 +421,20 @@ budget / expectedSteps = stepper_tol_factor(expectedSteps)  &lt;- shrinks as det
     </p>
 
     <p>
-      The purpose: the piezo has drifted away from its 25 V centre absorbing
-      slow frequency changes, so it no longer has symmetric range left to
-      follow further drift. The second pass uses the stepper to take over that
-      DC offset, handing the piezo back its full &plusmn; range. Note the
-      harmonic-linearizer sign flip — <code>delta_piezo</code> negates its
-      result for HLs <span class="cite">cavity.py:711-715</span>.
+      What that second pass is nulling: <code>delta_piezo</code> is the piezo's
+      own offset from its 25 V center, converted to Hz — literally
+      <code>(piezo.voltage - 25) &times; hz_per_v</code>, negated for
+      harmonic linearizers <span class="cite">cavity.py:699-715</span>. Driving
+      that to zero with the stepper walks the piezo voltage back toward center,
+      so the stepper ends up holding the offset instead of the piezo.
     </p>
 
     <h3>Tolerances</h3>
 
     <p>
-      50 Hz, or 500 Hz for harmonic linearizers
-      <span class="cite">cavity.py:735</span>. The HL figure is looser in
-      proportion to their coarser per-step response.
+      50 Hz, or 500 Hz for harmonic linearizers — a literal in the
+      <code>move_to_resonance</code> call, not derived from anything
+      <span class="cite">cavity.py:735</span>.
     </p>
 
     <h3>Yes, the chirp range gets re-adjusted mid-tune</h3>
@@ -1049,7 +1071,7 @@ const FAULT_BASE = {
 //
 // How many times the estimated step count the loop is allowed to actually move
 // before it declares the motor is running away. Generous at small step counts,
-// where mechanical dead zones and hysteresis make the estimate rough, and tight
+// where mechanical dead zones make the estimate rough, and tight
 // at large ones (1.01x near cold landing, tens of millions of steps, where a 1%
 // overrun is already enormous).
 //
@@ -1101,9 +1123,9 @@ function stepperTolFactor(numSteps) {
 // (stepper.py:253), and move()'s motor-moving poll loop calls
 // cavity.check_detune() every ~5 s while the motor is turning
 // (stepper.py:387-391). So the chirp range can be widened SEVERAL TIMES
-// during a single move, not just once per iteration as modelled here.
+// during a single move, not just once per iteration as modeled here.
 //
-// Also not modelled: the pre-loop `if self.detune_invalid` guard
+// Also not modeled: the pre-loop `if self.detune_invalid` guard
 // (cavity.py:834), which raises DetuneError before the first move ever
 // happens. Deliberate — this port starts from a valid detune reading, and the
 // detune_invalid_* faults below cover the in-loop check_detune() path instead.
@@ -1186,7 +1208,7 @@ function runAutoTune(opts) {
     // from inside move()'s poll loop. That one writes ABORT_REQ to stop a move
     // already in progress and raises StepperAbortError, taking up to ~10 s to
     // land (5 s start-up settle + 5 s poll interval) and leaving RF on. That
-    // is where the "~10 s, RF stays on" behaviour belongs; it is not what this
+    // is where the "~10 s, RF stays on" behavior belongs; it is not what this
     // fault does.
     if (firing && fault === "abort") {
       outcome = "abort";
@@ -1443,11 +1465,10 @@ function selfCheck() {
   }
 
   // Every Inject button must sit on a row whose "Raises" column names the same
-  // exception the simulator actually reports. This was a real defect: the abort
-  // button sat on the StepperAbortError row while the fault it injects is the
-  // cavity path, which raises CavityAbortError and turns RF off -- the exact
-  // distinction section 6 exists to draw. A reader clicking that row was shown
-  // the other path's outcome. Cheap to check, so it is checked.
+  // exception the simulator actually reports. Section 6 exists to draw the
+  // distinction between the two abort paths -- the stepper one leaves RF on,
+  // the cavity one turns it off -- so a button on the wrong row shows the
+  // reader the other path's outcome. Cheap to check, so it is checked.
   for (const tr of document.querySelectorAll("#failures tbody tr")) {
     const btn = tr.querySelector("button[data-fault]");
     if (!btn) continue;
