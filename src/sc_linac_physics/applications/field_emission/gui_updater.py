@@ -183,7 +183,8 @@ def sync_cache(run_list, progress=print):
     """fetch each run missing from the h5 cache and write it in
 
     Each run is written as soon as it is fetched, so an interrupted sync keeps
-    the runs it finished. A full build from an empty cache takes hours.
+    the runs it finished. A full build from an empty cache took 331 s for 80
+    runs (2026-10-06), most runs 2-3 s; a cold archiver can take 30 s a run.
     """
     lookup = parse_csv(run_list)
     missing = find_missing_runs(list(read_from_csv(run_list)))
